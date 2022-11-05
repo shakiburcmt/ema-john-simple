@@ -1,26 +1,37 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useLoaderData } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { addToDb, deleteShoppingCart, getStoredCart } from '../../utilities/fakedb';
 import Cart from '../Cart/Cart';
 import Product from '../Product/Product';
 import './Shop.css';
 
 const Shop = () => {
-    // const [products, setProducts] = useState([]);
-    const products = useLoaderData();
+    const [products, setProducts] = useState([]);
+    const [count, setCount] = useState(0);
     const [cart, setCart] = useState([]);
+
+    // pagination
+    const [page, setPage] = useState(0);
+    const [size, setSize] = useState(10);
+
+    useEffect(() => {
+        const url = `http://localhost:4000/products?page=${page}&size=${size}`;
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                setCount(data.count);
+                setProducts(data.products);
+            })
+    }, [page,size]);
+
+    const pages = Math.ceil(count / size);
+// pagination end
 
     const clearCart = () => {
         setCart([]);
         deleteShoppingCart();
     }
 
-    // this part is now unnecessary because of using react router loader
-    // useEffect( () =>{
-    //     fetch('products.json')
-    //     .then(res=> res.json())
-    //     .then(data => setProducts(data))
-    // }, []);
 
     useEffect(() => {
         const storedCart = getStoredCart();
@@ -30,7 +41,7 @@ const Shop = () => {
         for (const id in storedCart) {
             // console.log(id)
             // find korle full object kei diye dibe tai id diye find korar por oi id selected thake oi id er full object pawa jabe
-            const addedProduct = products.find(product => product.id === id);
+            const addedProduct = products.find(product => product._id === id);
             if (addedProduct) {
                 const quantity = storedCart[id];
                 // console.log(quantity)
@@ -41,35 +52,35 @@ const Shop = () => {
         }
         setCart(savedCart);
         // nocher line e products dependency injection hisabe kaj kore mane jotobar change hobe totobar call korbe products ke,, empty array hole ekbar e call korbe
-    },[products])
+    }, [products])
 
-    const handleAddToCart = (selectedProduct) =>{
+    const handleAddToCart = (selectedProduct) => {
         console.log(selectedProduct);
         let newCart = [];
-        const exists = cart.find(product => product.id === selectedProduct.id);
+        const exists = cart.find(product => product._id === selectedProduct._id);
         if (!exists) {
             selectedProduct.quantity = 1;
             // do not do this: cart.push(product);
             newCart = [...cart, selectedProduct];
         }
         else {
-            const rest = cart.filter(product => product.id !== selectedProduct.id);
+            const rest = cart.filter(product => product._id !== selectedProduct._id);
             exists.quantity = exists.quantity + 1;
             newCart = [...rest, exists];
         }
         setCart(newCart);
-        addToDb(selectedProduct.id)
+        addToDb(selectedProduct._id)
     }
 
     return (
         <div className='shop-container'>
             <div className="products-container">
                 {
-                    products.map(product=><Product 
-                        key={product.id}
+                    products.map(product => <Product
+                        key={product._id}
                         product={product}
                         handleAddToCart={handleAddToCart}
-                        ></Product>)
+                    ></Product>)
                 }
             </div>
             <div className="cart-container">
@@ -78,6 +89,22 @@ const Shop = () => {
                         <button>Review Orders</button>
                     </Link>
                 </Cart>
+            </div>
+            <div className="pagination">
+                <p>Currently selected page: {page} and size: {size}</p>
+                {
+                    [...Array(pages).keys()].map(number => <button
+                        key={number}
+                        className={page === number && 'selected'}
+                        onClick={() => setPage(number)}
+                    >{number}</button>)
+                }
+                <select onChange={event => setSize(event.target.value)}>
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="15">15</option>
+                    <option value="20">20</option>
+                </select>
             </div>
         </div>
     );
