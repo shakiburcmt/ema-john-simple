@@ -22,10 +22,10 @@ const Shop = () => {
                 setCount(data.count);
                 setProducts(data.products);
             })
-    }, [page,size]);
+    }, [page, size]);
 
     const pages = Math.ceil(count / size);
-// pagination end
+    // pagination end
 
     const clearCart = () => {
         setCart([]);
@@ -36,21 +36,30 @@ const Shop = () => {
     useEffect(() => {
         const storedCart = getStoredCart();
         const savedCart = [];
-        // console.log(storedCart)
-        // jehetu property tai for in loop
-        for (const id in storedCart) {
-            // console.log(id)
-            // find korle full object kei diye dibe tai id diye find korar por oi id selected thake oi id er full object pawa jabe
-            const addedProduct = products.find(product => product._id === id);
-            if (addedProduct) {
-                const quantity = storedCart[id];
-                // console.log(quantity)
-                addedProduct.quantity = quantity;
-                // console.log('selected products',addedProduct)
-                savedCart.push(addedProduct);
-            }
-        }
-        setCart(savedCart);
+        const ids = Object.keys(storedCart);
+        console.log(ids);
+        fetch('http://localhost:4000/productsByIds', {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify(ids)
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log(data);
+                // jehetu property tai for in loop
+                for (const id in storedCart) {
+                    const addedProduct = data.find(product => product._id === id);
+                    if (addedProduct) {
+                        const quantity = storedCart[id];
+                        addedProduct.quantity = quantity;
+                        savedCart.push(addedProduct);
+                    }
+                }
+                setCart(savedCart);
+            })
+
         // nocher line e products dependency injection hisabe kaj kore mane jotobar change hobe totobar call korbe products ke,, empty array hole ekbar e call korbe
     }, [products])
 
@@ -95,9 +104,9 @@ const Shop = () => {
                 {
                     [...Array(pages).keys()].map(number => <button
                         key={number}
-                        className={page === number && 'selected'}
+                        className={page === number ? 'selected' : ''}
                         onClick={() => setPage(number)}
-                    >{number}</button>)
+                    >{number + 1}</button>)
                 }
                 <select onChange={event => setSize(event.target.value)}>
                     <option value="5">5</option>
